@@ -1,13 +1,14 @@
 import curses
 import os
 import sys
+import time
 
 def game_selection(stdscr):
     curses.curs_set(0)
     stdscr.nodelay(False)
     stdscr.clear()
     sh, sw = stdscr.getmaxyx()
-    options = ["Bouncy Ball Game", "Snake Game", "Space Shooter", "Quit"]
+    options = ["Bouncy Ball Game", "Snake Game", "Space Shooter", "Dodge Game", "Quit"]
     selected = 0
 
     while True:
@@ -42,6 +43,10 @@ def launch_space_shooter():
     import spaceshooter
     spaceshooter.startGame()
 
+def launch_dodge_game():
+    import dodgingthing as dodgegame
+    dodgegame.startGame()
+
 if __name__ == "__main__":
     curses.initscr()
     curses.start_color()
@@ -55,6 +60,11 @@ if __name__ == "__main__":
         launch_snake()
     elif choice == "Space Shooter":
         launch_space_shooter()
+    elif choice == "Dodge Game":
+        launch_dodge_game()
     else:
         print("Goodbye! Thanks for playing!")
         sys.exit()
+    time.sleep(1)
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("All good times come to an end!! Have a wonderful day! \n\n\tSigning off... James \t\tbonk!")
