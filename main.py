@@ -4,6 +4,7 @@ import random
 import os
 from colorama import init, Fore, Style
 import platform
+import threading
 
 # Initialize colorama
 init(autoreset=True)
@@ -139,17 +140,18 @@ def game_over_animation():
     def play_tune():
         try:
             # windows platform
-            if platform.system() == "Windows":
-                import winsound
-                notes = [(440, 200), (660, 200), (330, 300), (550, 300), (440, 400)]
-                for freq, dur in notes:
-                    winsound.Beep(freq, dur)
-                    time.sleep(0.05)
-            else:
-                # linux platform
-                for _ in range(5):
-                    print("\a", end="", flush=True)
-                    time.sleep(0.2)
+            for i in range(5):
+                if platform.system() == "Windows":
+                    import winsound
+                    notes = [(440, 200), (660, 200), (330, 300), (550, 300), (440, 400)]
+                    for freq, dur in notes:
+                        winsound.Beep(freq, dur)
+                        time.sleep(0.05)
+                else:
+                    # linux platform
+                    for _ in range(5):
+                        print("\a", end="", flush=True)
+                        time.sleep(0.2)
         except Exception:
             pass  # If sound not supported, silently skip
 
@@ -163,7 +165,7 @@ def game_over_animation():
     colors = [Fore.RED, Fore.YELLOW, Fore.MAGENTA, Fore.CYAN, Fore.GREEN]
     os.system('cls' if os.name == 'nt' else 'clear')
 
-    play_tune()
+    thread = threading.Thread(target=play_tune)
 
     for i in range(15):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -175,6 +177,10 @@ def game_over_animation():
         print("\n" * 3)
         print(color + "💀 HAHA 💀".center(80))
         time.sleep(0.2)
+        if i == 0:
+            thread.start()
+    
+    thread.join()
 
 
 # -----------------------------------
