@@ -2,6 +2,8 @@ import curses
 import os
 import sys
 import time
+import random
+import finalescreen
 
 def game_selection(stdscr):
     curses.curs_set(0)
@@ -68,3 +70,8 @@ if __name__ == "__main__":
     time.sleep(1)
     os.system('cls' if os.name == 'nt' else 'clear')
     print("All good times come to an end!! Have a wonderful day! \n\n\tSigning off... James \t\tbonk!")
+    if random.random() < 0.1:
+        print("\nP.S. Don't forget to stretch those fingers!")
+    if random.random() < 0.3:
+        time.sleep(2)
+        finalescreen.finale_screen(-999999) # troll
