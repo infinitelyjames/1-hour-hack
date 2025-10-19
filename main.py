@@ -2,7 +2,36 @@ import curses
 import time
 import random
 
+def intro_animation(stdscr):
+    curses.curs_set(0)
+    sh, sw = stdscr.getmaxyx()
+    text = ["  ____       _ _ _     ____                        ",
+            " |  _ \\ __ _| | | |   | __ )  __ _ ___  ___  ___  ",
+            " | |_) / _` | | | |   |  _ \\ / _` / __|/ _ \\/ __| ",
+            " |  __/ (_| | | | |   | |_) | (_| \\__ \\  __/\\__ \\ ",
+            " |_|   \\__,_|_|_|_|   |____/ \\__,_|___/\\___||___/ "]
+
+    for i in range(5):
+        stdscr.clear()
+        # Bounce effect: y offset goes up and down
+        offset = int(2 * (1 - ((i % 2) * 2)))
+        for idx, line in enumerate(text):
+            x = sw // 2 - len(line) // 2
+            y = sh // 2 - len(text) // 2 + idx + offset
+            stdscr.addstr(y, x, line)
+        stdscr.refresh()
+        time.sleep(0.5)
+
+    # Countdown
+    for i in range(3, 0, -1):
+        stdscr.clear()
+        msg = f"Starting in {i}..."
+        stdscr.addstr(sh // 2, sw // 2 - len(msg) // 2, msg)
+        stdscr.refresh()
+        time.sleep(1)
+
 def main(stdscr):
+    intro_animation(stdscr)
     curses.curs_set(0)  # Hide cursor
     stdscr.nodelay(True)  # Non-blocking input
     stdscr.timeout(100)  # Refresh every 100 ms
