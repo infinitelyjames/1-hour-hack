@@ -10,9 +10,6 @@ import threading
 init(autoreset=True)
 
 
-# -----------------------------------
-# COLORFUL LOADING INTRO
-# -----------------------------------
 def color_intro():
     os.system('cls' if os.name == 'nt' else 'clear')
     colors = [Fore.RED, Fore.YELLOW, Fore.GREEN, Fore.CYAN, Fore.MAGENTA, Fore.BLUE]
