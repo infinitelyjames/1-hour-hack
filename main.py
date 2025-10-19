@@ -1,21 +1,18 @@
 import curses
 import os
-from colorama import init, Fore, Style
 import sys
-
-init(autoreset=True)
 
 def game_selection(stdscr):
     curses.curs_set(0)
     stdscr.nodelay(False)
     stdscr.clear()
     sh, sw = stdscr.getmaxyx()
-    options = ["Bouncy Ball Game", "Snake Game", "Quit"]
+    options = ["Bouncy Ball Game", "Snake Game", "Space Shooter", "Quit"]
     selected = 0
 
     while True:
         stdscr.clear()
-        stdscr.addstr(2, sw//2 - 12,  "🎮 SELECT A GAME 🎮")
+        stdscr.addstr(2, sw//2 - 12, "🎮 SELECT A GAME 🎮")
         for i, option in enumerate(options):
             if i == selected:
                 stdscr.attron(curses.color_pair(1))
@@ -41,17 +38,23 @@ def launch_snake():
     import snake
     snake.startGame()
 
+def launch_space_shooter():
+    import spaceshooter
+    spaceshooter.startGame()
+
 if __name__ == "__main__":
     curses.initscr()
     curses.start_color()
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_GREEN)
     choice = curses.wrapper(game_selection)
     curses.endwin()
-    os.system('cls' if os.name=='nt' else 'clear')
+    os.system('cls' if os.name == 'nt' else 'clear')
     if choice == "Bouncy Ball Game":
         launch_bouncy_ball()
     elif choice == "Snake Game":
         launch_snake()
+    elif choice == "Space Shooter":
+        launch_space_shooter()
     else:
-        print(Fore.YELLOW + "Goodbye! Thanks for playing!")
+        print("Goodbye! Thanks for playing!")
         sys.exit()
