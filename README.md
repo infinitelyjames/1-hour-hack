@@ -19,8 +19,16 @@ features:
 other games:
 - snek (nom nom snek)
 - space shooter (pew pew)
+- dodging thing (dodge the things)
 
 known grievances:
 - text animations yay!! --- IGNORE ---
 - you're not good enough to beat the high score
 - your computer may be laggy L
+- your keyboard is lava if you hold down the keys too long
+
+enjoy!!
+ps. the big space invader is watching your every move muahahaha
+
+have fun :)
+-- James
