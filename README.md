@@ -1,3 +1,9 @@
+# designed for WINDOWS
+
+install colorama and windows-curses via pip if you want to run this on windows
+if you don't want to run this on windows, run ..... at your perillllll.
+and run from your machine while you're at it or it'll run after you.
+
 # hi
 
 some space ball bouncy game
