@@ -27,6 +27,10 @@ known grievances:
 - your computer may be laggy L
 - your keyboard is lava if you hold down the keys too long
 
+THOSE EASTER EGGS Y'ALL ARE LOOKING FOR:
+- random chance for your score to turn shit (haha)
+    - well you can boast to friends about it if that's what people do nowadays lolz
+
 enjoy!!
 ps. the big space invader is watching your every move muahahaha
 
