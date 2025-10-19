@@ -3,6 +3,7 @@ import time
 import random
 import os
 from colorama import init, Fore, Style
+import platform
 
 # Initialize colorama
 init(autoreset=True)
@@ -88,17 +89,6 @@ def main(stdscr):
         stdscr.attroff(curses.color_pair(color_index))
         stdscr.refresh()
 
-        if game_over:
-            msg = " GAME OVER! Press 'q' to quit. "
-            stdscr.attron(curses.color_pair(color_index))
-            stdscr.addstr(sh // 2, sw // 2 - len(msg) // 2, msg)
-            stdscr.attroff(curses.color_pair(color_index))
-            stdscr.refresh()
-            key = stdscr.getch()
-            if key == ord('q'):
-                break
-            continue
-
         # Player input
         key = stdscr.getch()
         if key == curses.KEY_LEFT and paddle_x > 1:
@@ -129,6 +119,8 @@ def main(stdscr):
             # Lose condition
             if ball[1] >= sh - 1:
                 game_over = True
+                game_over_animation()
+                return
 
         # Add new ball every 10 points
         if score // 10 > added_balls:
@@ -137,10 +129,57 @@ def main(stdscr):
 
         time.sleep(0.05)
 
+def game_over_animation():
+    import time
+    import os
+    from colorama import Fore, Style
+    import random
+
+    # Tune using system beeps
+    def play_tune():
+        try:
+            # windows platform
+            if platform.system() == "Windows":
+                import winsound
+                notes = [(440, 200), (660, 200), (330, 300), (550, 300), (440, 400)]
+                for freq, dur in notes:
+                    winsound.Beep(freq, dur)
+                    time.sleep(0.05)
+            else:
+                # linux platform
+                for _ in range(5):
+                    print("\a", end="", flush=True)
+                    time.sleep(0.2)
+        except Exception:
+            pass  # If sound not supported, silently skip
+
+    # Funny text animation
+    messages = [
+        "Y O U   L O S T",
+        "HAHAHAHAHAHA!",
+        "BETTER LUCK NEXT TIME!",
+    ]
+
+    colors = [Fore.RED, Fore.YELLOW, Fore.MAGENTA, Fore.CYAN, Fore.GREEN]
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+    play_tune()
+
+    for i in range(15):
+        os.system('cls' if os.name == 'nt' else 'clear')
+        color = random.choice(colors)
+        print(Style.BRIGHT + color)
+        print("\n" * 5)
+        for msg in messages:
+            print(msg.center(80))
+        print("\n" * 3)
+        print(color + "💀 HAHA 💀".center(80))
+        time.sleep(0.2)
+
 
 # -----------------------------------
 # RUN GAME
 # -----------------------------------
 if __name__ == "__main__":
-    color_intro()  # Fancy color intro before curses
+    color_intro()  
     curses.wrapper(main)
