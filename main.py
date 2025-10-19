@@ -2,13 +2,43 @@ import curses
 import time
 import random
 import os
+import json
 from colorama import init, Fore, Style
 import platform
 import threading
 
-# Initialize colorama
 init(autoreset=True)
+SCORES_FILE = "scores.json"
 
+def load_scores():
+    if not os.path.exists(SCORES_FILE):
+        return []
+    try:
+        with open(SCORES_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_scores(scores):
+    scores.sort(key=lambda x: x["score"], reverse=True)
+    scores = scores[:3]
+    with open(SCORES_FILE, "w") as f:
+        json.dump(scores, f, indent=2)
+
+def update_leaderboard(name, score):
+    scores = load_scores()
+    scores.append({"name": name, "score": score})
+    save_scores(scores)
+
+def show_leaderboard():
+    scores = load_scores()
+    if not scores:
+        print("\nNo high scores yet! Be the first one!\n")
+        return
+    print(Fore.YELLOW + Style.BRIGHT + "\n🏆  TOP 3 HIGH SCORES  🏆\n")
+    for i, entry in enumerate(scores, start=1):
+        print(f"{i}. {entry['name']} - {entry['score']}")
+    print()
 
 def color_intro():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -20,7 +50,6 @@ def color_intro():
         " |  __/ (_| | | | |   | |_) | (_| \\__ \\  __/\\__ \\ ",
         " |_|   \\__,_|_|_|_|   |____/ \\__,_|___/\\___||___/ "
     ]
-
     for i in range(24):
         os.system('cls' if os.name == 'nt' else 'clear')
         color = colors[i % len(colors)]
@@ -29,7 +58,6 @@ def color_intro():
             print(line.center(80))
         print("\n" + color + f" Loading game{'.' * (i % 4)}".center(80))
         time.sleep(0.2)
-
     for i in range(3, 0, -1):
         os.system('cls' if os.name == 'nt' else 'clear')
         print(Fore.CYAN + Style.BRIGHT)
@@ -37,17 +65,12 @@ def color_intro():
         print(f"{'Starting in ' + str(i) + '...':^80}")
         time.sleep(1)
 
-
-# -----------------------------------
-# MAIN GAME
-# -----------------------------------
-def main(stdscr):
+def main(stdscr, player_name):
     curses.curs_set(0)
     stdscr.nodelay(True)
     stdscr.timeout(100)
     curses.start_color()
     curses.use_default_colors()
-
     colors = [
         curses.COLOR_RED, curses.COLOR_YELLOW,
         curses.COLOR_GREEN, curses.COLOR_CYAN,
@@ -55,52 +78,38 @@ def main(stdscr):
     ]
     for i, c in enumerate(colors, start=1):
         curses.init_pair(i, c, -1)
-
     sh, sw = stdscr.getmaxyx()
     paddle_width = 10
     paddle_x = sw // 2 - paddle_width // 2
     paddle_y = sh - 2
-
     balls = [[sw // 2, sh // 2, random.choice([-1, 1]), -1]]
-    powerups = []  # list of [x, y, type]
+    powerups = []
     score = 0
-    game_over = False
     added_balls = 0
     color_index = 1
     speed = 0.05
-
-    # Power-up effects
     double_points = False
     slow_motion = False
     widen_timer = 0
     effect_timer = 0
-
     while True:
         stdscr.clear()
         stdscr.border()
-
-        # Draw paddle and balls
         stdscr.attron(curses.color_pair(color_index))
         stdscr.addstr(paddle_y, paddle_x, "=" * paddle_width)
         for ball in balls:
             stdscr.addstr(ball[1], ball[0], "O")
         stdscr.attroff(curses.color_pair(color_index))
-
-        # Draw power-ups
         for px, py, ptype in powerups:
             stdscr.addstr(py, px, ptype)
-
-        # Draw score and active effects
         stdscr.attron(curses.color_pair(color_index))
-        stdscr.addstr(0, 2, f" Score: {score} ")
+        stdscr.addstr(0, 2, f" {player_name}: {score} ")
         if double_points:
-            stdscr.addstr(0, 20, "⭐ 2X POINTS ⭐")
+            stdscr.addstr(0, 25, "⭐ 2X POINTS ⭐")
         if slow_motion:
-            stdscr.addstr(0, 40, "🐢 SLOW MOTION 🐢")
+            stdscr.addstr(0, 45, "🐢 SLOW MOTION 🐢")
         stdscr.attroff(curses.color_pair(color_index))
         stdscr.refresh()
-
-        # Input
         key = stdscr.getch()
         if key == curses.KEY_LEFT and paddle_x > 1:
             paddle_x -= 2
@@ -108,41 +117,29 @@ def main(stdscr):
             paddle_x += 2
         elif key == ord('q'):
             break
-
-        # Move balls
         for ball in balls:
             ball[0] += ball[2]
             ball[1] += ball[3]
-
             if ball[0] <= 1 or ball[0] >= sw - 2:
                 ball[2] *= -1
             if ball[1] <= 1:
                 ball[3] *= -1
-
-            # Paddle bounce
             if ball[1] == paddle_y - 1 and paddle_x <= ball[0] <= paddle_x + paddle_width:
                 ball[3] *= -1
                 points = 2 if double_points else 1
                 score += points
                 color_index = (color_index % len(colors)) + 1
-
-                # Randomly drop a power-up
                 if random.random() < 0.3:
                     ptype = random.choice(["W", "S", "D"])
                     powerups.append([ball[0], 1, ptype])
-
-            # Lose condition
             if ball[1] >= sh - 1:
-                game_over = True
-                game_over_animation()
+                game_over_animation(player_name, score)
+                update_leaderboard(player_name, score)
                 return
-
-        # Move power-ups
         for p in powerups[:]:
             p[1] += 1
             if p[1] >= paddle_y:
                 if paddle_x <= p[0] <= paddle_x + paddle_width:
-                    # Apply power-up effect
                     if p[2] == "W":
                         paddle_width = min(paddle_width + 4, sw - 4)
                         widen_timer = time.time()
@@ -156,8 +153,6 @@ def main(stdscr):
                     powerups.remove(p)
                 elif p[1] > paddle_y:
                     powerups.remove(p)
-
-        # Power-up effect expiration
         if double_points and time.time() - effect_timer > 10:
             double_points = False
         if slow_motion and time.time() - effect_timer > 5:
@@ -166,24 +161,16 @@ def main(stdscr):
         if widen_timer and time.time() - widen_timer > 8:
             paddle_width = max(10, paddle_width - 4)
             widen_timer = 0
-
-        # Add ball every 10 points
         if score // 10 > added_balls:
             balls.append([sw // 2, sh // 2, random.choice([-1, 1]), -1])
             added_balls += 1
-
         time.sleep(speed)
 
-
-# -----------------------------------
-# GAME OVER SCREEN
-# -----------------------------------
-def game_over_animation():
+def game_over_animation(name, score):
     import time
     import os
     from colorama import Fore, Style
     import random
-
     def play_tune():
         try:
             if platform.system() == "Windows":
@@ -198,11 +185,9 @@ def game_over_animation():
                     time.sleep(0.2)
         except Exception:
             pass
-
-    messages = ["Y O U   L O S T", "HAHAHAHAHAHA!", "BETTER LUCK NEXT TIME!"]
+    messages = [f"Y O U   L O S T ,  {name.upper()}!", f"FINAL SCORE: {score}", "HAHAHAHAHAHA!"]
     colors = [Fore.RED, Fore.YELLOW, Fore.MAGENTA, Fore.CYAN, Fore.GREEN]
     os.system('cls' if os.name == 'nt' else 'clear')
-
     thread = threading.Thread(target=play_tune)
     for i in range(15):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -217,11 +202,11 @@ def game_over_animation():
         if i == 0:
             thread.start()
     thread.join()
+    show_leaderboard()
 
-
-# -----------------------------------
-# RUN GAME
-# -----------------------------------
 if __name__ == "__main__":
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(Fore.GREEN + Style.BRIGHT + "Welcome to the Bouncy Ball Game!\n")
+    player_name = input("Enter your name: ") or "Player"
     color_intro()
-    curses.wrapper(main)
+    curses.wrapper(main, player_name)
