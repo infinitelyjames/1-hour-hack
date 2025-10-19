@@ -1,212 +1,57 @@
 import curses
-import time
-import random
 import os
-import json
 from colorama import init, Fore, Style
-import platform
-import threading
+import sys
 
 init(autoreset=True)
-SCORES_FILE = "scores.json"
 
-def load_scores():
-    if not os.path.exists(SCORES_FILE):
-        return []
-    try:
-        with open(SCORES_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-def save_scores(scores):
-    scores.sort(key=lambda x: x["score"], reverse=True)
-    scores = scores[:3]
-    with open(SCORES_FILE, "w") as f:
-        json.dump(scores, f, indent=2)
-
-def update_leaderboard(name, score):
-    scores = load_scores()
-    scores.append({"name": name, "score": score})
-    save_scores(scores)
-
-def show_leaderboard():
-    scores = load_scores()
-    if not scores:
-        print("\nNo high scores yet! Be the first one!\n")
-        return
-    print(Fore.YELLOW + Style.BRIGHT + "\n🏆  TOP 3 HIGH SCORES  🏆\n")
-    for i, entry in enumerate(scores, start=1):
-        print(f"{i}. {entry['name']} - {entry['score']}")
-    print()
-
-def color_intro():
-    os.system('cls' if os.name == 'nt' else 'clear')
-    colors = [Fore.RED, Fore.YELLOW, Fore.GREEN, Fore.CYAN, Fore.MAGENTA, Fore.BLUE]
-    text = [
-        "  ____       _ _ _     ____                        ",
-        " |  _ \\ __ _| | | |   | __ )  __ _ ___  ___  ___  ",
-        " | |_) / _` | | | |   |  _ \\ / _` / __|/ _ \\/ __| ",
-        " |  __/ (_| | | | |   | |_) | (_| \\__ \\  __/\\__ \\ ",
-        " |_|   \\__,_|_|_|_|   |____/ \\__,_|___/\\___||___/ "
-    ]
-    for i in range(24):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        color = colors[i % len(colors)]
-        print(color + Style.BRIGHT)
-        for line in text:
-            print(line.center(80))
-        print("\n" + color + f" Loading game{'.' * (i % 4)}".center(80))
-        time.sleep(0.2)
-    for i in range(3, 0, -1):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(Fore.CYAN + Style.BRIGHT)
-        print("\n" * 5)
-        print(f"{'Starting in ' + str(i) + '...':^80}")
-        time.sleep(1)
-
-def main(stdscr, player_name):
+def game_selection(stdscr):
     curses.curs_set(0)
-    stdscr.nodelay(True)
-    stdscr.timeout(100)
-    curses.start_color()
-    curses.use_default_colors()
-    colors = [
-        curses.COLOR_RED, curses.COLOR_YELLOW,
-        curses.COLOR_GREEN, curses.COLOR_CYAN,
-        curses.COLOR_MAGENTA, curses.COLOR_BLUE
-    ]
-    for i, c in enumerate(colors, start=1):
-        curses.init_pair(i, c, -1)
+    stdscr.nodelay(False)
+    stdscr.clear()
     sh, sw = stdscr.getmaxyx()
-    paddle_width = 10
-    paddle_x = sw // 2 - paddle_width // 2
-    paddle_y = sh - 2
-    balls = [[sw // 2, sh // 2, random.choice([-1, 1]), -1]]
-    powerups = []
-    score = 0
-    added_balls = 0
-    color_index = 1
-    speed = 0.05
-    double_points = False
-    slow_motion = False
-    widen_timer = 0
-    effect_timer = 0
+    options = ["Bouncy Ball Game", "Snake Game", "Quit"]
+    selected = 0
+
     while True:
         stdscr.clear()
-        stdscr.border()
-        stdscr.attron(curses.color_pair(color_index))
-        stdscr.addstr(paddle_y, paddle_x, "=" * paddle_width)
-        for ball in balls:
-            stdscr.addstr(ball[1], ball[0], "O")
-        stdscr.attroff(curses.color_pair(color_index))
-        for px, py, ptype in powerups:
-            stdscr.addstr(py, px, ptype)
-        stdscr.attron(curses.color_pair(color_index))
-        stdscr.addstr(0, 2, f" {player_name}: {score} ")
-        if double_points:
-            stdscr.addstr(0, 25, "⭐ 2X POINTS ⭐")
-        if slow_motion:
-            stdscr.addstr(0, 45, "🐢 SLOW MOTION 🐢")
-        stdscr.attroff(curses.color_pair(color_index))
-        stdscr.refresh()
-        key = stdscr.getch()
-        if key == curses.KEY_LEFT and paddle_x > 1:
-            paddle_x -= 2
-        elif key == curses.KEY_RIGHT and paddle_x < sw - paddle_width - 1:
-            paddle_x += 2
-        elif key == ord('q'):
-            break
-        for ball in balls:
-            ball[0] += ball[2]
-            ball[1] += ball[3]
-            if ball[0] <= 1 or ball[0] >= sw - 2:
-                ball[2] *= -1
-            if ball[1] <= 1:
-                ball[3] *= -1
-            if ball[1] == paddle_y - 1 and paddle_x <= ball[0] <= paddle_x + paddle_width:
-                ball[3] *= -1
-                points = 2 if double_points else 1
-                score += points
-                color_index = (color_index % len(colors)) + 1
-                if random.random() < 0.3:
-                    ptype = random.choice(["W", "S", "D"])
-                    powerups.append([ball[0], 1, ptype])
-            if ball[1] >= sh - 1:
-                game_over_animation(player_name, score)
-                update_leaderboard(player_name, score)
-                return
-        for p in powerups[:]:
-            p[1] += 1
-            if p[1] >= paddle_y:
-                if paddle_x <= p[0] <= paddle_x + paddle_width:
-                    if p[2] == "W":
-                        paddle_width = min(paddle_width + 4, sw - 4)
-                        widen_timer = time.time()
-                    elif p[2] == "S":
-                        slow_motion = True
-                        effect_timer = time.time()
-                        speed = 0.1
-                    elif p[2] == "D":
-                        double_points = True
-                        effect_timer = time.time()
-                    powerups.remove(p)
-                elif p[1] > paddle_y:
-                    powerups.remove(p)
-        if double_points and time.time() - effect_timer > 10:
-            double_points = False
-        if slow_motion and time.time() - effect_timer > 5:
-            slow_motion = False
-            speed = 0.05
-        if widen_timer and time.time() - widen_timer > 8:
-            paddle_width = max(10, paddle_width - 4)
-            widen_timer = 0
-        if score // 10 > added_balls:
-            balls.append([sw // 2, sh // 2, random.choice([-1, 1]), -1])
-            added_balls += 1
-        time.sleep(speed)
-
-def game_over_animation(name, score):
-    import time
-    import os
-    from colorama import Fore, Style
-    import random
-    def play_tune():
-        try:
-            if platform.system() == "Windows":
-                import winsound
-                notes = [(440, 200), (660, 200), (330, 300), (550, 300), (440, 400)]
-                for freq, dur in notes:
-                    winsound.Beep(freq, dur)
-                    time.sleep(0.05)
+        stdscr.addstr(2, sw//2 - 12,  "🎮 SELECT A GAME 🎮")
+        for i, option in enumerate(options):
+            if i == selected:
+                stdscr.attron(curses.color_pair(1))
+                stdscr.addstr(sh//2 - len(options)//2 + i, sw//2 - len(option)//2, f"> {option} <")
+                stdscr.attroff(curses.color_pair(1))
             else:
-                for _ in range(5):
-                    print("\a", end="", flush=True)
-                    time.sleep(0.2)
-        except Exception:
-            pass
-    messages = [f"Y O U   L O S T ,  {name.upper()}!", f"FINAL SCORE: {score}", "HAHAHAHAHAHA!"]
-    colors = [Fore.RED, Fore.YELLOW, Fore.MAGENTA, Fore.CYAN, Fore.GREEN]
-    os.system('cls' if os.name == 'nt' else 'clear')
-    thread = threading.Thread(target=play_tune)
-    for i in range(15):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        color = random.choice(colors)
-        print(Style.BRIGHT + color)
-        print("\n" * 5)
-        for msg in messages:
-            print(msg.center(80))
-        print("\n" * 3)
-        print(color + "💀 HAHA 💀".center(80))
-        time.sleep(0.2)
-        if i == 0:
-            thread.start()
-    thread.join()
-    show_leaderboard()
+                stdscr.addstr(sh//2 - len(options)//2 + i, sw//2 - len(option)//2, option)
+        stdscr.refresh()
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and selected > 0:
+            selected -= 1
+        elif key == curses.KEY_DOWN and selected < len(options) - 1:
+            selected += 1
+        elif key in [curses.KEY_ENTER, 10, 13]:
+            return options[selected]
+
+def launch_bouncy_ball():
+    import bouncyball
+    bouncyball.startGame()
+
+def launch_snake():
+    import snake
+    snake.startGame()
 
 if __name__ == "__main__":
-    os.system('cls' if os.name == 'nt' else 'clear')
-    print(Fore.GREEN + Style.BRIGHT + "Welcome to the Bouncy Ball Game!\n")
-    player_name = input("Enter your name: ") or "Player"
-    color_intro()
-    curses.wrapper(main, player_name)
+    curses.initscr()
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_GREEN)
+    choice = curses.wrapper(game_selection)
+    curses.endwin()
+    os.system('cls' if os.name=='nt' else 'clear')
+    if choice == "Bouncy Ball Game":
+        launch_bouncy_ball()
+    elif choice == "Snake Game":
+        launch_snake()
+    else:
+        print(Fore.YELLOW + "Goodbye! Thanks for playing!")
+        sys.exit()
