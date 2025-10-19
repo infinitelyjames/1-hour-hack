@@ -1,67 +1,67 @@
 import curses
 import time
 import random
+import sys
+import os
+from colorama import init, Fore, Style
 
-def intro_animation(stdscr):
-    curses.curs_set(0)
-    sh, sw = stdscr.getmaxyx()
-    text = ["  ____       _ _ _     ____                        ",
-            " |  _ \\ __ _| | | |   | __ )  __ _ ___  ___  ___  ",
-            " | |_) / _` | | | |   |  _ \\ / _` / __|/ _ \\/ __| ",
-            " |  __/ (_| | | | |   | |_) | (_| \\__ \\  __/\\__ \\ ",
-            " |_|   \\__,_|_|_|_|   |____/ \\__,_|___/\\___||___/ "]
+# Initialize colorama
+init(autoreset=True)
 
-    for i in range(5):
-        stdscr.clear()
-        # Bounce effect: y offset goes up and down
-        offset = int(2 * (1 - ((i % 2) * 2)))
-        for idx, line in enumerate(text):
-            x = sw // 2 - len(line) // 2
-            y = sh // 2 - len(text) // 2 + idx + offset
-            stdscr.addstr(y, x, line)
-        stdscr.refresh()
-        time.sleep(0.5)
+def color_intro():
+    """
+    Displays a rotating-color ASCII intro using colorama before curses starts.
+    """
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-    # Countdown
+    colors = [Fore.RED, Fore.YELLOW, Fore.GREEN, Fore.CYAN, Fore.MAGENTA, Fore.BLUE]
+    text = [
+        "  ____       _ _ _     ____                        ",
+        " |  _ \\ __ _| | | |   | __ )  __ _ ___  ___  ___  ",
+        " | |_) / _` | | | |   |  _ \\ / _` / __|/ _ \\/ __| ",
+        " |  __/ (_| | | | |   | |_) | (_| \\__ \\  __/\\__ \\ ",
+        " |_|   \\__,_|_|_|_|   |____/ \\__,_|___/\\___||___/ "
+    ]
+
+    for i in range(24):  # Rotate for a few seconds
+        os.system('cls' if os.name == 'nt' else 'clear')
+        color = colors[i % len(colors)]
+        print(color + Style.BRIGHT)
+        for line in text:
+            print(line.center(80))
+        print("\n" + color + f" Loading game{'.' * (i % 4)}".center(80))
+        time.sleep(0.2)
+
+    # Countdown before game starts
     for i in range(3, 0, -1):
-        stdscr.clear()
-        msg = f"Starting in {i}..."
-        stdscr.addstr(sh // 2, sw // 2 - len(msg) // 2, msg)
-        stdscr.refresh()
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(Fore.CYAN + Style.BRIGHT)
+        print("\n" * 5)
+        print(f"{'Starting in ' + str(i) + '...':^80}")
         time.sleep(1)
 
 def main(stdscr):
-    intro_animation(stdscr)
-    curses.curs_set(0)  # Hide cursor
-    stdscr.nodelay(True)  # Non-blocking input
-    stdscr.timeout(100)  # Refresh every 100 ms
+    curses.curs_set(0)
+    stdscr.nodelay(True)
+    stdscr.timeout(100)
 
-    sh, sw = stdscr.getmaxyx()  # Screen height/width
+    sh, sw = stdscr.getmaxyx()
     paddle_width = 10
     paddle_x = sw // 2 - paddle_width // 2
     paddle_y = sh - 2
 
-    # List of balls; each ball is [x, y, dx, dy]
     balls = [[sw // 2, sh // 2, random.choice([-1, 1]), -1]]
-
     score = 0
     game_over = False
-    added_balls = 0  # Track multiples of 10 to avoid duplicate additions
+    added_balls = 0
 
     while True:
         stdscr.clear()
         stdscr.border()
-
-        # Draw paddle
         stdscr.addstr(paddle_y, paddle_x, "=" * paddle_width)
-
-        # Draw balls
         for ball in balls:
             stdscr.addstr(ball[1], ball[0], "O")
-
-        # Draw score
         stdscr.addstr(0, 2, f" Score: {score} ")
-
         stdscr.refresh()
 
         if game_over:
@@ -73,7 +73,6 @@ def main(stdscr):
                 break
             continue
 
-        # Input handling
         key = stdscr.getch()
         if key == curses.KEY_LEFT and paddle_x > 1:
             paddle_x -= 2
@@ -82,32 +81,25 @@ def main(stdscr):
         elif key == ord('q'):
             break
 
-        # Move balls
         for ball in balls:
-            ball[0] += ball[2]  # x
-            ball[1] += ball[3]  # y
-
-            # Bounce on walls
+            ball[0] += ball[2]
+            ball[1] += ball[3]
             if ball[0] <= 1 or ball[0] >= sw - 2:
                 ball[2] *= -1
             if ball[1] <= 1:
                 ball[3] *= -1
-
-            # Bounce on paddle
             if ball[1] == paddle_y - 1 and paddle_x <= ball[0] <= paddle_x + paddle_width:
                 ball[3] *= -1
                 score += 1
-
-            # Lose condition
             if ball[1] >= sh - 1:
                 game_over = True
 
-        # Add new ball at multiples of 5
-        if score // 5 > added_balls:
+        if score // 10 > added_balls:
             balls.append([sw // 2, sh // 2, random.choice([-1, 1]), -1])
             added_balls += 1
 
         time.sleep(0.05)
 
 if __name__ == "__main__":
+    color_intro()  # Run fancy color intro first
     curses.wrapper(main)
